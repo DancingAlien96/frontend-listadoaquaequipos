@@ -1,6 +1,6 @@
 
 "use client";
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent, Fragment } from "react";
 
 const API_URL = "http://localhost:4000";
 
@@ -30,14 +30,24 @@ export default function Home() {
   const [form, setForm] = useState<FormState>({ name: "", regular_price: "", status: "publish" });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editModal, setEditModal] = useState<EditModal>({ open: false, product: null });
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PER_PAGE = 20;
 
   // Fetch products
-  const fetchProducts = async () => {
+  const fetchProducts = async (p = page, s = search) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/products`);
+      const params = new URLSearchParams({ page: String(p), per_page: String(PER_PAGE) });
+      if (s) params.append('search', s);
+      const res = await fetch(`${API_URL}/products?${params}`);
       const data = await res.json();
-      setProducts(data);
+      setProducts(data.products);
+      setTotal(Number(data.total) || 0);
+      setTotalPages(Number(data.totalPages) || 1);
       setError("");
     } catch {
       setError("Error al cargar productos");
@@ -46,8 +56,8 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    fetchProducts(page, search);
+  }, [page, search]);
 
   // Handle create
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -150,6 +160,20 @@ export default function Home() {
         </select>
         <button type="submit" style={{ padding: 8, borderRadius: 4, background: '#0070f3', color: '#fff', border: 'none' }}>{editingId ? "Actualizar" : "Crear"}</button>
       </form>
+      {/* Barra de búsqueda */}
+      <form onSubmit={e => { e.preventDefault(); setPage(1); setSearch(searchInput); }} style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
+        <input
+          placeholder="Buscar producto..."
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
+          style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', flex: 1 }}
+        />
+        <button type="submit" style={{ padding: '8px 16px', borderRadius: 4, background: '#0070f3', color: '#fff', border: 'none', fontWeight: 600 }}>Buscar</button>
+        {search && (
+          <button type="button" onClick={() => { setSearchInput(""); setSearch(""); setPage(1); }} style={{ padding: '8px 12px', borderRadius: 4, background: '#888', color: '#fff', border: 'none', fontWeight: 600 }}>&#x2715; Limpiar</button>
+        )}
+      </form>
+      {total > 0 && <p style={{ marginBottom: 12, color: '#aaa' }}>{total} productos encontrados</p>}
       {/* Modal de edición fuera del formulario principal */}
       {editModal.open && editModal.product && (
         <div style={{
@@ -316,6 +340,43 @@ export default function Home() {
               .product-cards { display: flex !important; }
             }
           `}</style>
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 24, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                style={{ padding: '6px 12px', borderRadius: 4, border: 'none', background: page === 1 ? '#444' : '#0070f3', color: '#fff', cursor: page === 1 ? 'default' : 'pointer' }}
+              >&#171;</button>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={{ padding: '6px 12px', borderRadius: 4, border: 'none', background: page === 1 ? '#444' : '#0070f3', color: '#fff', cursor: page === 1 ? 'default' : 'pointer' }}
+              >&#8249;</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                .map((p, i, arr) => (
+                  <Fragment key={p}>
+                    {i > 0 && arr[i - 1] !== p - 1 && <span style={{ color: '#888' }}>...</span>}
+                    <button
+                      onClick={() => setPage(p)}
+                      style={{ padding: '6px 12px', borderRadius: 4, border: 'none', background: page === p ? '#0070f3' : '#333', color: '#fff', cursor: 'pointer', fontWeight: page === p ? 700 : 400 }}
+                    >{p}</button>
+                  </Fragment>
+                ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                style={{ padding: '6px 12px', borderRadius: 4, border: 'none', background: page === totalPages ? '#444' : '#0070f3', color: '#fff', cursor: page === totalPages ? 'default' : 'pointer' }}
+              >&#8250;</button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+                style={{ padding: '6px 12px', borderRadius: 4, border: 'none', background: page === totalPages ? '#444' : '#0070f3', color: '#fff', cursor: page === totalPages ? 'default' : 'pointer' }}
+              >&#187;</button>
+              <span style={{ color: '#aaa', fontSize: 13 }}>Página {page} de {totalPages}</span>
+            </div>
+          )}
         </div>
       )}
     </main>
