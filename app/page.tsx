@@ -1,16 +1,35 @@
 
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent } from "react";
 
 const API_URL = "http://localhost:4000";
 
+interface WooProduct {
+  id: number;
+  name: string;
+  regular_price: string;
+  status: string;
+  images: { src: string }[];
+}
+
+interface FormState {
+  name: string;
+  regular_price: string;
+  status: string;
+}
+
+interface EditModal {
+  open: boolean;
+  product: WooProduct | null;
+}
+
 export default function Home() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<WooProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", regular_price: "", status: "publish" });
-  const [editingId, setEditingId] = useState(null);
-  const [editModal, setEditModal] = useState({ open: false, product: null });
+  const [form, setForm] = useState<FormState>({ name: "", regular_price: "", status: "publish" });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editModal, setEditModal] = useState<EditModal>({ open: false, product: null });
 
   // Fetch products
   const fetchProducts = async () => {
@@ -20,7 +39,7 @@ export default function Home() {
       const data = await res.json();
       setProducts(data);
       setError("");
-    } catch (err) {
+    } catch {
       setError("Error al cargar productos");
     }
     setLoading(false);
@@ -31,7 +50,7 @@ export default function Home() {
   }, []);
 
   // Handle create
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const res = await fetch(`${API_URL}/products`, {
@@ -48,8 +67,9 @@ export default function Home() {
   };
 
   // Handle edit submit (popup)
-  const handleEditSubmit = async (e) => {
+  const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!editModal.product) return;
     try {
       const res = await fetch(`${API_URL}/products/${editModal.product.id}`, {
         method: "PUT",
@@ -65,7 +85,7 @@ export default function Home() {
   };
 
   // Handle delete
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm("¿Eliminar producto?")) return;
     try {
       await fetch(`${API_URL}/products/${id}`, { method: "DELETE" });
@@ -76,7 +96,7 @@ export default function Home() {
   };
 
   // Handle hide
-  const handleHide = async (id) => {
+  const handleHide = async (id: number) => {
     try {
       await fetch(`${API_URL}/products/${id}/hide`, { method: "PATCH" });
       fetchProducts();
@@ -86,7 +106,7 @@ export default function Home() {
   };
 
   // Handle show (publicar)
-  const handleShow = async (id) => {
+  const handleShow = async (id: number) => {
     try {
       await fetch(`${API_URL}/products/${id}/show`, { method: "PATCH" });
       fetchProducts();
@@ -94,8 +114,9 @@ export default function Home() {
       setError("Error publicando producto");
     }
   };
+
   // Handle edit
-  const handleEdit = (product) => {
+  const handleEdit = (product: WooProduct) => {
     setEditModal({ open: true, product: { ...product } });
   };
 
