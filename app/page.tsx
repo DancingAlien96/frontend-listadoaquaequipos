@@ -163,7 +163,7 @@ export default function Home() {
               <input
                 placeholder="Nombre"
                 value={editModal.product.name}
-                onChange={e => setEditModal(m => ({ ...m, product: { ...m.product, name: e.target.value } }))}
+                onChange={e => setEditModal(m => ({ ...m, product: { ...m.product!, name: e.target.value } }))}
                 required
                 style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
               />
@@ -171,13 +171,13 @@ export default function Home() {
                 placeholder="Precio"
                 type="number"
                 value={editModal.product.regular_price}
-                onChange={e => setEditModal(m => ({ ...m, product: { ...m.product, regular_price: e.target.value } }))}
+                onChange={e => setEditModal(m => ({ ...m, product: { ...m.product!, regular_price: e.target.value } }))}
                 required
                 style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
               />
               <select
                 value={editModal.product.status}
-                onChange={e => setEditModal(m => ({ ...m, product: { ...m.product, status: e.target.value } }))}
+                onChange={e => setEditModal(m => ({ ...m, product: { ...m.product!, status: e.target.value } }))}
                 style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
               >
                 <option value="publish">Publicado</option>
