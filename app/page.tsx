@@ -151,7 +151,7 @@ export default function Home() {
         <button type="submit" style={{ padding: 8, borderRadius: 4, background: '#0070f3', color: '#fff', border: 'none' }}>{editingId ? "Actualizar" : "Crear"}</button>
       </form>
       {/* Modal de edición fuera del formulario principal */}
-      {editModal.open && (
+      {editModal.open && editModal.product && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
