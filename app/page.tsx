@@ -1,6 +1,7 @@
 
 "use client";
 import { useEffect, useState, FormEvent, Fragment } from "react";
+import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -23,7 +24,12 @@ interface EditModal {
   product: WooProduct | null;
 }
 
+interface User { id: number; username: string; }
+
 export default function Home() {
+  const router = useRouter();
+  const [token, setToken] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [products, setProducts] = useState<WooProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -37,13 +43,41 @@ export default function Home() {
   const [total, setTotal] = useState(0);
   const PER_PAGE = 20;
 
+  // Users modal
+  const [usersModal, setUsersModal] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [newUser, setNewUser] = useState({ username: "", password: "" });
+  const [usersError, setUsersError] = useState("");
+
+  // Check auth on mount
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    const u = localStorage.getItem("username");
+    if (!t) { router.push("/login"); return; }
+    setToken(t);
+    setCurrentUser(u);
+  }, []);
+
+  const authHeaders = (t: string) => ({
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${t}`,
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    router.push("/login");
+  };
+
   // Fetch products
-  const fetchProducts = async (p = page, s = search) => {
+  const fetchProducts = async (p = page, s = search, t = token) => {
+    if (!t) return;
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(p), per_page: String(PER_PAGE) });
       if (s) params.append('search', s);
-      const res = await fetch(`${API_URL}/products?${params}`);
+      const res = await fetch(`${API_URL}/products?${params}`, { headers: authHeaders(t) });
+      if (res.status === 401) { handleLogout(); return; }
       const data = await res.json();
       setProducts(data.products);
       setTotal(Number(data.total) || 0);
@@ -56,16 +90,17 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchProducts(page, search);
-  }, [page, search]);
+    if (token) fetchProducts(page, search, token);
+  }, [page, search, token]);
 
   // Handle create
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!token) return;
     try {
       const res = await fetch(`${API_URL}/products`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(token),
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error("Error guardando producto");
@@ -79,11 +114,11 @@ export default function Home() {
   // Handle edit submit (popup)
   const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!editModal.product) return;
+    if (!editModal.product || !token) return;
     try {
       const res = await fetch(`${API_URL}/products/${editModal.product.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(token),
         body: JSON.stringify(editModal.product),
       });
       if (!res.ok) throw new Error("Error actualizando producto");
@@ -96,9 +131,9 @@ export default function Home() {
 
   // Handle delete
   const handleDelete = async (id: number) => {
-    if (!window.confirm("¿Eliminar producto?")) return;
+    if (!window.confirm("¿Eliminar producto?") || !token) return;
     try {
-      await fetch(`${API_URL}/products/${id}`, { method: "DELETE" });
+      await fetch(`${API_URL}/products/${id}`, { method: "DELETE", headers: authHeaders(token) });
       fetchProducts();
     } catch {
       setError("Error eliminando producto");
@@ -107,8 +142,9 @@ export default function Home() {
 
   // Handle hide
   const handleHide = async (id: number) => {
+    if (!token) return;
     try {
-      await fetch(`${API_URL}/products/${id}/hide`, { method: "PATCH" });
+      await fetch(`${API_URL}/products/${id}/hide`, { method: "PATCH", headers: authHeaders(token) });
       fetchProducts();
     } catch {
       setError("Error ocultando producto");
@@ -117,8 +153,9 @@ export default function Home() {
 
   // Handle show (publicar)
   const handleShow = async (id: number) => {
+    if (!token) return;
     try {
-      await fetch(`${API_URL}/products/${id}/show`, { method: "PATCH" });
+      await fetch(`${API_URL}/products/${id}/show`, { method: "PATCH", headers: authHeaders(token) });
       fetchProducts();
     } catch {
       setError("Error publicando producto");
@@ -130,9 +167,91 @@ export default function Home() {
     setEditModal({ open: true, product: { ...product } });
   };
 
+  // Users management
+  const fetchUsers = async () => {
+    if (!token) return;
+    const res = await fetch(`${API_URL}/auth/users`, { headers: authHeaders(token) });
+    const data = await res.json();
+    setUsers(data);
+  };
+
+  const handleOpenUsers = () => {
+    setUsersModal(true);
+    setUsersError("");
+    fetchUsers();
+  };
+
+  const handleCreateUser = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!token) return;
+    setUsersError("");
+    try {
+      const res = await fetch(`${API_URL}/auth/users`, {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify(newUser),
+      });
+      const data = await res.json();
+      if (!res.ok) { setUsersError(data.error); return; }
+      setNewUser({ username: "", password: "" });
+      fetchUsers();
+    } catch {
+      setUsersError("Error creando usuario");
+    }
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    if (!window.confirm("¿Eliminar usuario?") || !token) return;
+    try {
+      const res = await fetch(`${API_URL}/auth/users/${id}`, { method: "DELETE", headers: authHeaders(token) });
+      const data = await res.json();
+      if (!res.ok) { setUsersError(data.error); return; }
+      fetchUsers();
+    } catch {
+      setUsersError("Error eliminando usuario");
+    }
+  };
+
+  if (!token) return null;
+
   return (
     <main style={{ maxWidth: 900, margin: "auto", padding: 20, fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: 28, marginBottom: 16 }}>Productos WooCommerce</h1>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 8 }}>
+        <h1 style={{ fontSize: 28, margin: 0 }}>Productos WooCommerce</h1>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ color: '#aaa', fontSize: 14 }}>Hola, <b style={{ color: '#fff' }}>{currentUser}</b></span>
+          <button onClick={handleOpenUsers} style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#333', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Usuarios</button>
+          <button onClick={handleLogout} style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#e00', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cerrar sesión</button>
+        </div>
+      </div>
+
+      {/* Modal Gestión de Usuarios */}
+      {usersModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: '#222', padding: 32, borderRadius: 12, minWidth: 320, maxWidth: '90vw', color: '#fff', position: 'relative' }}>
+            <button onClick={() => setUsersModal(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'transparent', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}>&times;</button>
+            <h2 style={{ marginBottom: 20 }}>Gestión de usuarios</h2>
+            <ul style={{ listStyle: 'none', padding: 0, marginBottom: 20 }}>
+              {users.map(u => (
+                <li key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #333' }}>
+                  <span>{u.username}</span>
+                  {u.username !== currentUser && (
+                    <button onClick={() => handleDeleteUser(u.id)} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#e00', color: '#fff', cursor: 'pointer' }}>Eliminar</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <h3 style={{ margin: 0, fontSize: 15 }}>Crear nuevo usuario</h3>
+              <input placeholder="Usuario" value={newUser.username} onChange={e => setNewUser(n => ({ ...n, username: e.target.value }))} required style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#333', color: '#fff' }} />
+              <input type="password" placeholder="Contraseña" value={newUser.password} onChange={e => setNewUser(n => ({ ...n, password: e.target.value }))} required style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#333', color: '#fff' }} />
+              {usersError && <p style={{ color: '#f55', fontSize: 13, margin: 0 }}>{usersError}</p>}
+              <button type="submit" style={{ padding: '8px', borderRadius: 6, border: 'none', background: '#0070f3', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Crear</button>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Formulario de creación */}
       <form onSubmit={handleSubmit} style={{ marginBottom: 32, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
