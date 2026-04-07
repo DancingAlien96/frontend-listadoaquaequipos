@@ -27,6 +27,7 @@ export default function LoginPage() {
       } else {
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.username);
+        localStorage.setItem("role", data.role || "secretaria");
         router.push("/");
       }
     } catch {

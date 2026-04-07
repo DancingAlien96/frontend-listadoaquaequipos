@@ -24,12 +24,13 @@ interface EditModal {
   product: WooProduct | null;
 }
 
-interface User { id: number; username: string; }
+interface User { id: number; username: string; role?: string; }
 
 export default function Home() {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [products, setProducts] = useState<WooProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -46,16 +47,18 @@ export default function Home() {
   // Users modal
   const [usersModal, setUsersModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [newUser, setNewUser] = useState({ username: "", password: "" });
+  const [newUser, setNewUser] = useState({ username: "", password: "", role: "secretaria" });
   const [usersError, setUsersError] = useState("");
 
   // Check auth on mount
   useEffect(() => {
     const t = localStorage.getItem("token");
     const u = localStorage.getItem("username");
+    const r = localStorage.getItem("role");
     if (!t) { router.push("/login"); return; }
     setToken(t);
     setCurrentUser(u);
+    setCurrentRole(r);
   }, []);
 
   const authHeaders = (t: string) => ({
@@ -66,6 +69,7 @@ export default function Home() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
+    localStorage.removeItem("role");
     router.push("/login");
   };
 
@@ -193,7 +197,7 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) { setUsersError(data.error); return; }
-      setNewUser({ username: "", password: "" });
+      setNewUser({ username: "", password: "", role: "secretaria" });
       fetchUsers();
     } catch {
       setUsersError("Error creando usuario");
@@ -221,7 +225,9 @@ export default function Home() {
         <h1 style={{ fontSize: 28, margin: 0 }}>Productos WooCommerce</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{ color: '#aaa', fontSize: 14 }}>Hola, <b style={{ color: '#fff' }}>{currentUser}</b></span>
-          <button onClick={handleOpenUsers} style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#333', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Usuarios</button>
+          {currentRole === 'admin' && (
+            <button onClick={handleOpenUsers} style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#333', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Usuarios</button>
+          )}
           <button onClick={handleLogout} style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#e00', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cerrar sesión</button>
         </div>
       </div>
@@ -235,7 +241,7 @@ export default function Home() {
             <ul style={{ listStyle: 'none', padding: 0, marginBottom: 20 }}>
               {users.map(u => (
                 <li key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #333' }}>
-                  <span>{u.username}</span>
+                  <span>{u.username} <span style={{ fontSize: 11, color: '#aaa', background: '#333', borderRadius: 4, padding: '2px 6px', marginLeft: 6 }}>{u.role || 'secretaria'}</span></span>
                   {u.username !== currentUser && (
                     <button onClick={() => handleDeleteUser(u.id)} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#e00', color: '#fff', cursor: 'pointer' }}>Eliminar</button>
                   )}
@@ -246,6 +252,10 @@ export default function Home() {
               <h3 style={{ margin: 0, fontSize: 15 }}>Crear nuevo usuario</h3>
               <input placeholder="Usuario" value={newUser.username} onChange={e => setNewUser(n => ({ ...n, username: e.target.value }))} required style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#333', color: '#fff' }} />
               <input type="password" placeholder="Contraseña" value={newUser.password} onChange={e => setNewUser(n => ({ ...n, password: e.target.value }))} required style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#333', color: '#fff' }} />
+              <select value={newUser.role} onChange={e => setNewUser(n => ({ ...n, role: e.target.value }))} style={{ padding: 8, borderRadius: 4, border: '1px solid #555', background: '#333', color: '#fff' }}>
+                <option value="secretaria">Secretaria</option>
+                <option value="admin">Admin</option>
+              </select>
               {usersError && <p style={{ color: '#f55', fontSize: 13, margin: 0 }}>{usersError}</p>}
               <button type="submit" style={{ padding: '8px', borderRadius: 6, border: 'none', background: '#0070f3', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Crear</button>
             </form>
