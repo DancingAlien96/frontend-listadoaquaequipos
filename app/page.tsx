@@ -365,29 +365,29 @@ export default function Home() {
                     <td style={{ padding: 8 }}>Q{p.regular_price}</td>
                     <td style={{ padding: 8 }}>{p.status}</td>
                     <td style={{ padding: 8 }}>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', justifyContent: 'center', alignItems: 'center' }}>
                         <button
-                          style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#0070f3', color: '#fff', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 4px #0002' }}
+                          style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: '#0070f3', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
                           onClick={() => handleEdit(p)}
                         >
                           Editar
                         </button>
                         <button
-                          style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#e00', color: '#fff', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 4px #0002' }}
+                          style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: '#e00', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
                           onClick={() => handleDelete(p.id)}
                         >
                           Eliminar
                         </button>
                           {p.status !== "draft" ? (
                             <button
-                              style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#888', color: '#fff', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 4px #0002' }}
+                              style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: '#888', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
                               onClick={() => handleHide(p.id)}
                             >
                               Ocultar
                             </button>
                           ) : (
                             <button
-                              style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#0a0', color: '#fff', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 4px #0002' }}
+                              style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: '#0a0', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
                               onClick={() => handleShow(p.id)}
                             >
                               Mostrar
