@@ -50,6 +50,7 @@ export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
   const [newUser, setNewUser] = useState({ username: "", password: "", role: "secretaria" });
   const [usersError, setUsersError] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Check auth on mount
   useEffect(() => {
@@ -72,6 +73,27 @@ export default function Home() {
     localStorage.removeItem("username");
     localStorage.removeItem("role");
     router.push("/login");
+  };
+
+  const uploadImage = async (file: File, onDone: (url: string) => void) => {
+    if (!token) return;
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_URL}/media`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Error subiendo imagen'); return; }
+      onDone(data.url);
+    } catch {
+      setError('Error subiendo imagen');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   // Fetch products
@@ -295,8 +317,14 @@ export default function Home() {
             placeholder="URL de imagen (opcional)"
             value={form.image}
             onChange={e => setForm({ ...form, image: e.target.value })}
-            style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 220 }}
+            style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 200 }}
           />
+          <label style={{ padding: '8px 12px', borderRadius: 4, background: '#444', color: '#fff', cursor: uploadingImage ? 'wait' : 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}>
+            {uploadingImage ? 'Subiendo...' : '+ Subir archivo'}
+            <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingImage}
+              onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, url => setForm(prev => ({ ...prev, image: url }))); e.target.value = ''; }}
+            />
+          </label>
           {form.image && (
             <img src={form.image} alt="preview" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc', background: '#fff' }} onError={e => (e.currentTarget.style.display = 'none')} />
           )}
@@ -357,6 +385,12 @@ export default function Home() {
                   onChange={e => setEditModal(m => ({ ...m, product: { ...m.product!, images: e.target.value ? [{ src: e.target.value }] : [] } }))}
                   style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', width: '100%', boxSizing: 'border-box' as const }}
                 />
+                <label style={{ display: 'inline-block', marginTop: 8, padding: '7px 14px', borderRadius: 4, background: '#444', color: '#fff', cursor: uploadingImage ? 'wait' : 'pointer', fontSize: 13 }}>
+                  {uploadingImage ? 'Subiendo...' : '+ Subir archivo'}
+                  <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingImage}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, url => setEditModal(m => ({ ...m, product: { ...m.product!, images: [{ src: url }] } }))); e.target.value = ''; }}
+                  />
+                </label>
                 {editModal.product.images?.[0]?.src && (
                   <img src={editModal.product.images[0].src} alt="preview" style={{ marginTop: 8, width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #555', background: '#fff', display: 'block' }} onError={e => (e.currentTarget.style.display = 'none')} />
                 )}
