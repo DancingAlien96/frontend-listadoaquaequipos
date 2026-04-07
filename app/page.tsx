@@ -17,6 +17,7 @@ interface FormState {
   name: string;
   regular_price: string;
   status: string;
+  image: string;
 }
 
 interface EditModal {
@@ -34,7 +35,7 @@ export default function Home() {
   const [products, setProducts] = useState<WooProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [form, setForm] = useState<FormState>({ name: "", regular_price: "", status: "publish" });
+  const [form, setForm] = useState<FormState>({ name: "", regular_price: "", status: "publish", image: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editModal, setEditModal] = useState<EditModal>({ open: false, product: null });
   const [search, setSearch] = useState("");
@@ -102,13 +103,15 @@ export default function Home() {
     e.preventDefault();
     if (!token) return;
     try {
+      const { image, ...rest } = form;
+      const payload = { ...rest, ...(image ? { images: [{ src: image }] } : {}) };
       const res = await fetch(`${API_URL}/products`, {
         method: "POST",
         headers: authHeaders(token),
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Error guardando producto");
-      setForm({ name: "", regular_price: "", status: "publish" });
+      setForm({ name: "", regular_price: "", status: "publish", image: "" });
       fetchProducts();
     } catch {
       setError("Error guardando producto");
@@ -287,6 +290,17 @@ export default function Home() {
           <option value="publish">Publicado</option>
           <option value="draft">Oculto</option>
         </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            placeholder="URL de imagen (opcional)"
+            value={form.image}
+            onChange={e => setForm({ ...form, image: e.target.value })}
+            style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 220 }}
+          />
+          {form.image && (
+            <img src={form.image} alt="preview" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc', background: '#fff' }} onError={e => (e.currentTarget.style.display = 'none')} />
+          )}
+        </div>
         <button type="submit" style={{ padding: 8, borderRadius: 4, background: '#0070f3', color: '#fff', border: 'none' }}>{editingId ? "Actualizar" : "Crear"}</button>
       </form>
       {/* Barra de búsqueda */}
@@ -336,6 +350,17 @@ export default function Home() {
                 <option value="publish">Publicado</option>
                 <option value="draft">Oculto</option>
               </select>
+              <div>
+                <input
+                  placeholder="URL de imagen (opcional)"
+                  value={editModal.product.images?.[0]?.src || ""}
+                  onChange={e => setEditModal(m => ({ ...m, product: { ...m.product!, images: e.target.value ? [{ src: e.target.value }] : [] } }))}
+                  style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', width: '100%', boxSizing: 'border-box' as const }}
+                />
+                {editModal.product.images?.[0]?.src && (
+                  <img src={editModal.product.images[0].src} alt="preview" style={{ marginTop: 8, width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #555', background: '#fff', display: 'block' }} onError={e => (e.currentTarget.style.display = 'none')} />
+                )}
+              </div>
               <button type="submit" style={{ padding: 10, borderRadius: 4, background: '#0070f3', color: '#fff', border: 'none', fontWeight: 600 }}>Guardar cambios</button>
             </form>
           </div>
