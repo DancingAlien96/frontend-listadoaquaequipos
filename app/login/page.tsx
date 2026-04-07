@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -68,16 +69,26 @@ export default function LoginPage() {
           </div>
           <div>
             <label style={{ fontSize: 13, color: "#aaa", marginBottom: 4, display: "block" }}>Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              style={{
-                width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #444",
-                background: "#2a2a2a", color: "#fff", fontSize: 15, boxSizing: "border-box"
-              }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                style={{
+                  width: "100%", padding: "10px 40px 10px 12px", borderRadius: 8, border: "1px solid #444",
+                  background: "#2a2a2a", color: "#fff", fontSize: 15, boxSizing: "border-box"
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 18, padding: 0, lineHeight: 1 }}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
           {error && (
             <p style={{ color: "#f55", fontSize: 13, margin: 0, textAlign: "center" }}>{error}</p>
