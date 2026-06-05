@@ -11,6 +11,7 @@ interface WooProduct {
   regular_price: string;
   status: string;
   images: { src: string }[];
+  description: string;
 }
 
 interface FormState {
@@ -18,6 +19,7 @@ interface FormState {
   regular_price: string;
   status: string;
   image: string;
+  description: string;
 }
 
 interface EditModal {
@@ -35,7 +37,7 @@ export default function Home() {
   const [products, setProducts] = useState<WooProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [form, setForm] = useState<FormState>({ name: "", regular_price: "", status: "publish", image: "" });
+  const [form, setForm] = useState<FormState>({ name: "", regular_price: "", status: "publish", image: "", description: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editModal, setEditModal] = useState<EditModal>({ open: false, product: null });
   const [search, setSearch] = useState("");
@@ -133,7 +135,7 @@ export default function Home() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Error guardando producto");
-      setForm({ name: "", regular_price: "", status: "publish", image: "" });
+      setForm({ name: "", regular_price: "", status: "publish", image: "", description: "" });
       fetchProducts();
     } catch {
       setError("Error guardando producto");
@@ -288,7 +290,7 @@ export default function Home() {
         </div>
       )}
       {/* Formulario de creación */}
-      <form onSubmit={handleSubmit} style={{ marginBottom: 32, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      <form onSubmit={handleSubmit} style={{ marginBottom: 32, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <input
           placeholder="Nombre"
           value={form.name}
@@ -329,6 +331,13 @@ export default function Home() {
             <img src={form.image} alt="preview" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid #ccc', background: '#fff' }} onError={e => (e.currentTarget.style.display = 'none')} />
           )}
         </div>
+        <textarea
+          placeholder="Descripción (opcional)"
+          value={form.description}
+          onChange={e => setForm({ ...form, description: e.target.value })}
+          rows={3}
+          style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', width: '100%', flexBasis: '100%', resize: 'vertical', fontFamily: 'sans-serif', fontSize: 14 }}
+        />
         <button type="submit" style={{ padding: 8, borderRadius: 4, background: '#0070f3', color: '#fff', border: 'none' }}>{editingId ? "Actualizar" : "Crear"}</button>
       </form>
       {/* Barra de búsqueda */}
@@ -395,6 +404,13 @@ export default function Home() {
                   <img src={editModal.product.images[0].src} alt="preview" style={{ marginTop: 8, width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #555', background: '#fff', display: 'block' }} onError={e => (e.currentTarget.style.display = 'none')} />
                 )}
               </div>
+              <textarea
+                placeholder="Descripción"
+                value={editModal.product.description || ""}
+                onChange={e => setEditModal(m => ({ ...m, product: { ...m.product!, description: e.target.value } }))}
+                rows={5}
+                style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', resize: 'vertical', fontFamily: 'sans-serif', fontSize: 14, background: '#333', color: '#fff' }}
+              />
               <button type="submit" style={{ padding: 10, borderRadius: 4, background: '#0070f3', color: '#fff', border: 'none', fontWeight: 600 }}>Guardar cambios</button>
             </form>
           </div>
